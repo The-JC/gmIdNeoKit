@@ -30,6 +30,7 @@ import h5py
 # import library for interpn data
 from scipy.interpolate import interpn
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import splev
 # import library for mos lookup
 import LupMos as lp
 import const
@@ -870,7 +871,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         sizeCgg = 0.0
         sizeCdd = 0.0
         if self.optOpptReady == 0:
-            self.optOpMos()
+            self.OptOpMos()
         if self.optOpptReady == 1:
             self.ui.botLPlotOpt.clear()
             self.ui.botRPlotOpt.clear()
@@ -1083,7 +1084,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.listVGS = np.arange(0, self.maxVGS, self.stepVGS)
         self.halfVGS = 0.5 * self.maxVGS
         self.VDS = self.halfVGS
-        self.ui.spinBoxBiasVds.setValue(1000.0*self.VDS)
+        self.ui.spinBoxBiasVds.setValue(int(1000.0*self.VDS))
         # TODO Set the VDS
         self.W = self.mosDat['W'][0][0]*self.mosDat['NFING'][0][0]
         print ('Mos Default Width : %2.2f' % self.W)
@@ -1469,7 +1470,16 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveIdDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listId, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listFt, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveAvDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listAv, pen = self.cornerPen[cornerIndex], clear=True)
-        self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
+        # self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
+        self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
+        
+        ## Limit input data due to invaration in Gm/Id
+        max_index  = np.argmax(listGmOverId)
+        listId = listId[max_index:]
+        listGmOverId = listGmOverId[max_index:]
+        listFt = listFt[max_index:]
+        listAv = listAv[max_index:]
+        
         ## VstarCurve
         listVstar = 2*np.reciprocal(listGmOverId)
         csIdV = CubicSpline( listVstar, listId)
@@ -1523,34 +1533,45 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveIdDRef[cornerIndex] = pg.PlotDataItem( self.listVGS, listId, pen = self.refPen, clear=True)
         self.corCurveFtDRef[cornerIndex] = pg.PlotDataItem( self.listVGS, listFt, pen = self.refPen, clear=True)
         self.corCurveAvDRef[cornerIndex] = pg.PlotDataItem( self.listVGS, listAv, pen = self.refPen, clear=True)
-        self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.refPen, clear=True)
+        # self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.refPen, clear=True)
+        self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listGmOverId, pen = self.refPen, clear=True)
+        
+        ## Limit input data due to invaration in Gm/Id
+        max_index  = np.argmax(listGmOverId)
+        listId = listId[max_index:]
+        listGmOverId = listGmOverId[max_index:]
+        listFt = listFt[max_index:]
+        listAv = listAv[max_index:]
+        
         ## VstarCurve
-        listVstar = 2*np.reciprocal(listGmOverId)
-        csIdV = CubicSpline( listVstar, listId)
-        csFtV = CubicSpline( listVstar, listFt)
-        csAvV = CubicSpline( listVstar, listAv)
-        pltIdV = csIdV(pltVstar)
-        pltFtV = csFtV(pltVstar)
-        pltAvV = csAvV(pltVstar)
-        self.corCurveIdVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltIdV, pen = self.refPen, clear=True)
-        self.corCurveFtVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltFtV, pen = self.refPen, clear=True)
-        self.corCurveAvVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltAvV, pen = self.refPen, clear=True)
-        self.corCurveFomVRef[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 * pltFtV / pltVstar, pen = self.refPen, clear=True)
+        if(True):
+            listVstar = 2*np.reciprocal(listGmOverId)
+            csIdV = CubicSpline( listVstar, listId)
+            csFtV = CubicSpline( listVstar, listFt)
+            csAvV = CubicSpline( listVstar, listAv)
+            pltIdV = csIdV(pltVstar)
+            pltFtV = csFtV(pltVstar)
+            pltAvV = csAvV(pltVstar)
+            self.corCurveIdVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltIdV, pen = self.refPen, clear=True)
+            self.corCurveFtVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltFtV, pen = self.refPen, clear=True)
+            self.corCurveAvVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltAvV, pen = self.refPen, clear=True)
+            self.corCurveFomVRef[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 * pltFtV / pltVstar, pen = self.refPen, clear=True)
+        
         ## GmOverID Curve
-        listGmId = np.flip(listGmOverId, 0)
-        listIdG = np.flip(listId, 0)
-        listFtG = np.flip(listFt, 0)
-        listAvG = np.flip(listAv, 0)
-        csIdG = CubicSpline( listGmId, listIdG)
-        csFtG = CubicSpline( listGmId, listFtG)
-        csAvG = CubicSpline( listGmId, listAvG)
-        pltIdG = csIdG(pltGmId)
-        pltFtG = csFtG(pltGmId)
-        pltAvG = csAvG(pltGmId)
-        self.corCurveIdGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltIdG, pen = self.refPen, clear=True)
-        self.corCurveFtGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltFtG, pen = self.refPen, clear=True)
-        self.corCurveAvGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltAvG, pen = self.refPen, clear=True)
-        self.corCurveFomGRef[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId * pltFtG, pen = self.refPen, clear=True)
+            listGmId = np.flip(listGmOverId, 0)
+            listIdG = np.flip(listId, 0)
+            listFtG = np.flip(listFt, 0)
+            listAvG = np.flip(listAv, 0)
+            csIdG = CubicSpline( listGmId, listIdG)
+            csFtG = CubicSpline( listGmId, listFtG)
+            csAvG = CubicSpline( listGmId, listAvG)
+            pltIdG = csIdG(pltGmId)
+            pltFtG = csFtG(pltGmId)
+            pltAvG = csAvG(pltGmId)
+            self.corCurveIdGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltIdG, pen = self.refPen, clear=True)
+            self.corCurveFtGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltFtG, pen = self.refPen, clear=True)
+            self.corCurveAvGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltAvG, pen = self.refPen, clear=True)
+            self.corCurveFomGRef[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId * pltFtG, pen = self.refPen, clear=True)
         ## Id Curve
         listIdI = np.log10(listId)
         csGmI = CubicSpline( listIdI, listGmOverId)
