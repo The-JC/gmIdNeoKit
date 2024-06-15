@@ -1415,6 +1415,8 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             self.ui.topRPlotId.removeItem(self.pltCurveFomIDes)
             self.ui.botLPlotId.removeItem(self.pltCurveAvIDes)
             self.ui.botRPlotId.removeItem(self.pltCurveFtIDes)
+
+        # Loopkup data
         self.listId = lp.lookupfz(self.mosDat, self.mosModel, 'ID', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         #self.listAv = lp.lookupfz(self.mosDat, self.mosModel, 'SELF_GAIN', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         self.listAv = self.lookUpAv(self.mosDat, self.mosModel, self.VDS, self.VSB, self.L, self.listVGS)
@@ -1422,6 +1424,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.listGmId = lp.lookupfz(self.mosDat, self.mosModel, 'GMOVERID', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         if(self.EN_VDSAT):
             self.listVdsat = lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
+        self.listVth = lp.lookupfz(self.mosDat, self.mosModel, 'VT', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         # Fig Line Extract
 
         # Vgs Figure
@@ -1440,42 +1443,49 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
 
         ## Limit input data due to invaration in Gm/Id
         max_index  = np.argmax(self.listGmId)
-        self.listId = self.listId[max_index:]
-        self.listGmId = self.listGmId[max_index:]
-        self.listFt = self.listFt[max_index:]
-        self.listAv = self.listAv[max_index:]
-        self.listVGS = self.listVGS[max_index:]
-        self.listVdsat = self.listVdsat[max_index:]
+        self.listId_trun = self.listId[max_index:]
+        self.listGmId_trun = self.listGmId[max_index:]
+        self.listFt_trun = self.listFt[max_index:]
+        self.listAv_trun = self.listAv[max_index:]
+        self.listVGS_trun = self.listVGS[max_index:]
+        self.listVth_trun = self.listVth[max_index:]
+        self.listVdsat_trun = self.listVdsat[max_index:]
 
         ## Vstar Line
-        self.listVstar = 2*np.reciprocal(self.listGmId)
-        self.csIdV = CubicSpline( self.listVstar, self.listId)
-        self.csFtV = CubicSpline( self.listVstar, self.listFt)
-        self.csAvV = CubicSpline( self.listVstar, self.listAv)
-        self.csVgV = CubicSpline( self.listVstar, self.listVGS)
+        self.listVstar = 2*np.reciprocal(self.listGmId_trun)
+        self.csIdV = CubicSpline( self.listVstar, self.listId_trun)
+        self.csFtV = CubicSpline( self.listVstar, self.listFt_trun)
+        self.csAvV = CubicSpline( self.listVstar, self.listAv_trun)
+        self.csVgV = CubicSpline( self.listVstar, self.listVGS_trun)
+        self.csVtV = CubicSpline( self.listVstar, self.listVth_trun)
         if(self.EN_VDSAT):
-            self.csVdsatV = CubicSpline(self.listVstar, self.listVdsat)
+            self.csVdsatV = CubicSpline(self.listVstar, self.listVdsat_trun)
+
         ## GmId Line
-        self.listGmIdG = np.flip(self.listGmId, 0)
-        self.listIdG = np.flip(self.listId, 0)
-        self.listFtG = np.flip(self.listFt, 0)
-        self.listAvG = np.flip(self.listAv, 0)
-        self.listVgG = np.flip(self.listVGS, 0)
-        self.listVdsatG = np.flip(self.listVdsat, 0)
+        self.listGmIdG = np.flip(self.listGmId_trun, 0)
+        self.listIdG = np.flip(self.listId_trun, 0)
+        self.listFtG = np.flip(self.listFt_trun, 0)
+        self.listAvG = np.flip(self.listAv_trun, 0)
+        self.listVgG = np.flip(self.listVGS_trun, 0)
+        self.listVtG = np.flip(self.listVth_trun, 0)
+        self.listVdsatG = np.flip(self.listVdsat_trun, 0)
         self.csIdG = CubicSpline( self.listGmIdG, self.listIdG)
         self.csFtG = CubicSpline( self.listGmIdG, self.listFtG)
         self.csAvG = CubicSpline( self.listGmIdG, self.listAvG)
         self.csVgG = CubicSpline( self.listGmIdG, self.listVgG)
+        self.csVtG = CubicSpline( self.listGmIdG, self.listVtG)
         if(self.EN_VDSAT):
             self.csVdsatG = CubicSpline( self.listGmIdG, self.listVdsatG)
+
         ## Id Line
-        self.listIdI = np.log10(self.listId)
-        self.csGmI = CubicSpline( self.listIdI, self.listGmId)
-        self.csFtI = CubicSpline( self.listIdI, self.listFt)
-        self.csAvI = CubicSpline( self.listIdI, self.listAv)
-        self.csVgI = CubicSpline( self.listIdI, self.listVGS)
+        self.listIdI = np.log10(self.listId_trun)
+        self.csGmI = CubicSpline( self.listIdI, self.listGmId_trun)
+        self.csFtI = CubicSpline( self.listIdI, self.listFt_trun)
+        self.csAvI = CubicSpline( self.listIdI, self.listAv_trun)
+        self.csVgI = CubicSpline( self.listIdI, self.listVGS_trun)
+        self.csVtI = CubicSpline( self.listIdI, self.listVth_trun)
         if(self.EN_VDSAT):
-            self.csVdsatI = CubicSpline( self.listIdI, self.listVdsat)
+            self.csVdsatI = CubicSpline( self.listIdI, self.listVdsat_trun)
     
         # Vstar Figure
         #self.pltVstar = np.arange( self.listVstar.min(), self.listVstar.max(), 0.001)
@@ -1484,6 +1494,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.pltFtV = self.csFtV(self.pltVstar)
         self.pltAvV = self.csAvV(self.pltVstar)
         self.pltVgV = self.csVgV(self.pltVstar)
+        self.pltVtV = self.csVtV(self.pltVstar)
         if(self.EN_VDSAT):
             self.pltVdsatV = self.csVdsatV(self.pltVstar)
         self.pltCurveIdVDes = pg.PlotDataItem( self.pltVstar, self.pltIdV, pen = self.pen, clear=True)
@@ -1505,6 +1516,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.pltFtG = self.csFtG(self.pltGmId)
         self.pltAvG = self.csAvG(self.pltGmId)
         self.pltVgG = self.csVgG(self.pltGmId)
+        self.pltVtG = self.csVtG(self.pltGmId)
         if(self.EN_VDSAT):
             self.pltVdsatG = self.csVdsatG(self.pltGmId)
         self.pltCurveIdGDes = pg.PlotDataItem( self.pltGmId, self.pltIdG, pen = self.pen, clear=True)
@@ -1527,6 +1539,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.pltFtI = self.csFtI( self.pltIdI)
         self.pltAvI = self.csAvI( self.pltIdI)
         self.pltVgI = self.csVgI( self.pltIdI)
+        self.pltVtI = self.csVtI( self.pltIdI)
         if(self.EN_VDSAT):
             self.pltVdsatI = self.csVdsatI( self.pltIdI)
         self.pltCurveGmIDes = pg.PlotDataItem( self.pltIdI, self.pltGmI, pen = self.pen, clear=True)
@@ -1541,8 +1554,8 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.ui.botLPlotId.addItem(self.pltCurveAvIDes)
         self.ui.botRPlotId.addItem(self.pltCurveFtIDes)
         # Vth Figure
-        #self.curveVth = pg.PlotDataItem( 1000.0*self.listLChk, self.listVthL, pen = self.pen, symbolBrush=(255,0,0), symbolPen='w', clear=True)
-        #self.ui.topLPlotL.addItem(self.curveVth)
+        # self.curveVth = pg.PlotDataItem( 1000.0*self.listLChk, self.listVthL, pen = self.pen, symbolBrush=(255,0,0), symbolPen='w', clear=True)
+        # self.ui.topLPlotL.addItem(self.curveVth)
         # Set Flag
         self.curveReady = 1
 
@@ -1600,6 +1613,8 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         listFt = lp.lookupfz(self.mosCorner[cornerIndex], self.mosModel, 'FUG', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         #listAv = lp.lookupfz(self.mosCorner[cornerIndex], self.mosModel, 'SELF_GAIN', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         listAv = self.lookUpAv(self.mosCorner[cornerIndex], self.mosModel, self.VDS, self.VSB, self.L, self.listVGS)
+        listVth = lp.lookupfz(self.mosCorner[cornerIndex], self.mosModel, 'VT', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
+
         ## Vgs Curve
         self.corCurveIdDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listId, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listFt, pen = self.cornerPen[cornerIndex], clear=True)
@@ -1615,17 +1630,20 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         listGmOverId = listGmOverId[max_index:]
         listFt = listFt[max_index:]
         listAv = listAv[max_index:]
+        listVth = listVth[max_index:]
         
         ## VstarCurve
         listVstar = 2*np.reciprocal(listGmOverId)
         csIdV = CubicSpline( listVstar, listId)
         csFtV = CubicSpline( listVstar, listFt)
         csAvV = CubicSpline( listVstar, listAv)
+        csVtV = CubicSpline( listVstar, listVth)
         #pltVstar = np.arange( listVstar.min(), listVstar.max(), 0.001)
         pltVstar = np.arange( self.minVstar, self.maxVstar, 0.0005)
         pltIdV = csIdV(pltVstar)
         pltFtV = csFtV(pltVstar)
         pltAvV = csAvV(pltVstar)
+        pltVtV = csVtV(pltVstar)
         self.corCurveIdVDes[cornerIndex] = pg.PlotDataItem( pltVstar, pltIdV, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtVDes[cornerIndex] = pg.PlotDataItem( pltVstar, pltFtV, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveAvVDes[cornerIndex] = pg.PlotDataItem( pltVstar, pltAvV, pen = self.cornerPen[cornerIndex], clear=True)
@@ -1837,16 +1855,18 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         if (self.curveReady == 1):
             index = np.searchsorted( self.listVGS, mousePoint.x(), side="left")
             if index > 0 and index < len(self.listVGS):
-                self.ui.labelId.setText(self.sciPrint(self.listId[index], 'A'))
-                self.ui.labelFt.setText(self.sciPrint(self.listFt[index], 'Hz'))
-                self.ui.labelVgs.setText(self.sciPrint(self.listVGS[index], 'V'))
+                self.ui.labelId.setText(        self.sciPrint(self.listId[index], 'A'))
+                self.ui.labelFt.setText(        self.sciPrint(self.listFt[index], 'Hz'))
+                self.ui.labelVgs.setText(       self.sciPrint(self.listVGS[index], 'V'))
                 if(self.EN_VDSAT):
-                    self.ui.labelVdsat.setText(self.sciPrint(self.listVdsat[index], 'V'))
-                self.ui.labelGain.setText(self.sciPrint(self.listAv[index], 'V/V'))
-                self.ui.labelFOM.setText(self.sciPrint((self.listFt[index]*self.listGmId[index]),'Hz/V'))
+                    self.ui.labelVdsat.setText( self.sciPrint(self.listVdsat[index], 'V'))
+                self.ui.labelGain.setText(      self.sciPrint(self.listAv[index], 'V/V'))
+                self.ui.labelFOM.setText(       self.sciPrint((self.listFt[index]*self.listGmId[index]),'Hz/V'))
                 # TODO Fix the Error
-                self.ui.labelVstar.setText(self.sciPrint(2.0/self.listGmId[index], 'V'))
-                self.ui.labelGmId.setText(self.sciPrint(self.listGmId[index], 'S/A'))
+                self.ui.labelVstar.setText(     self.sciPrint(2.0/self.listGmId[index], 'V'))
+                self.ui.labelGmId.setText(      self.sciPrint(self.listGmId[index], 'S/A'))
+                self.ui.labelIdWL.setText(      self.sciPrint((self.listId[index]/(self.W/self.L)), 'A'))
+                self.ui.labelVth.setText(       self.sciPrint((self.listVth[index]),'V'))
                 #self.ui.labelGmId.setText('---')
                 #self.ui.labelVstar.setText('---')
             else:
@@ -1869,15 +1889,17 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         if (self.curveReady == 1):
             index = np.searchsorted( self.pltVstar, mousePoint.x(), side="left")
             if index > 0 and index < len(self.pltVstar):
-                self.ui.labelId.setText(self.sciPrint(self.pltIdV[index], 'A'))
-                self.ui.labelVstar.setText(self.sciPrint(self.pltVstar[index], 'V'))
-                self.ui.labelGmId.setText(self.sciPrint((2.0/self.pltVstar[index]), 'S/A'))
-                self.ui.labelFt.setText(self.sciPrint(self.pltFtV[index], 'Hz'))
-                self.ui.labelVgs.setText(self.sciPrint(self.pltVgV[index], 'V'))
+                self.ui.labelId.setText(        self.sciPrint(self.pltIdV[index], 'A'))
+                self.ui.labelVstar.setText(     self.sciPrint(self.pltVstar[index], 'V'))
+                self.ui.labelGmId.setText(      self.sciPrint((2.0/self.pltVstar[index]), 'S/A'))
+                self.ui.labelFt.setText(        self.sciPrint(self.pltFtV[index], 'Hz'))
+                self.ui.labelVgs.setText(       self.sciPrint(self.pltVgV[index], 'V'))
                 if(self.EN_VDSAT):
-                    self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatV[index], 'V'))
-                self.ui.labelGain.setText(self.sciPrint(self.pltAvV[index], 'V/V'))
-                self.ui.labelFOM.setText(self.sciPrint((2.0*self.pltFtV[index]/self.pltVstar[index]),'Hz/V'))
+                    self.ui.labelVdsat.setText( self.sciPrint(self.pltVdsatV[index], 'V'))
+                self.ui.labelGain.setText(      self.sciPrint(self.pltAvV[index], 'V/V'))
+                self.ui.labelFOM.setText(       self.sciPrint((2.0*self.pltFtV[index]/self.pltVstar[index]),'Hz/V'))
+                self.ui.labelIdWL.setText(      self.sciPrint((self.pltIdV[index]/(self.W/self.L)), 'A'))
+                self.ui.labelVth.setText(       self.sciPrint((self.pltVtV[index]),'V'))
             else:
                 self.ui.labelId.setText('---')
                 self.ui.labelGmId.setText('---')
@@ -1898,15 +1920,17 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         if (self.curveReady == 1):
             index = np.searchsorted( self.pltGmId, mousePointG.x(), side="left")
             if index > 0 and index < len(self.pltGmId):
-                self.ui.labelId.setText(self.sciPrint(self.pltIdG[index], 'A'))
-                self.ui.labelVstar.setText(self.sciPrint((2.0/self.pltGmId[index]), 'V'))
-                self.ui.labelGmId.setText(self.sciPrint(self.pltGmId[index], 'S/A'))
-                self.ui.labelFt.setText(self.sciPrint(self.pltFtG[index], 'Hz'))
-                self.ui.labelVgs.setText(self.sciPrint(self.pltVgG[index], 'V'))
+                self.ui.labelId.setText(        self.sciPrint(self.pltIdG[index], 'A'))
+                self.ui.labelVstar.setText(     self.sciPrint((2.0/self.pltGmId[index]), 'V'))
+                self.ui.labelGmId.setText(      self.sciPrint(self.pltGmId[index], 'S/A'))
+                self.ui.labelFt.setText(        self.sciPrint(self.pltFtG[index], 'Hz'))
+                self.ui.labelVgs.setText(       self.sciPrint(self.pltVgG[index], 'V'))
                 if(self.EN_VDSAT):
-                    self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatG[index], 'V'))
-                self.ui.labelGain.setText(self.sciPrint(self.pltAvG[index], 'V/V'))
-                self.ui.labelFOM.setText(self.sciPrint((self.pltFtG[index]*self.pltGmId[index]),'Hz/V'))
+                    self.ui.labelVdsat.setText( self.sciPrint(self.pltVdsatG[index], 'V'))
+                self.ui.labelGain.setText(      self.sciPrint(self.pltAvG[index], 'V/V'))
+                self.ui.labelFOM.setText(       self.sciPrint((self.pltFtG[index]*self.pltGmId[index]),'Hz/V'))
+                self.ui.labelIdWL.setText(      self.sciPrint((self.pltIdG[index]/(self.W/self.L)), 'A'))
+                self.ui.labelVth.setText(       self.sciPrint((self.pltVtG[index]),'V'))
             else:
                 self.ui.labelId.setText('---')
                 self.ui.labelGmId.setText('---')
@@ -1927,15 +1951,17 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         if (self.curveReady == 1):
             index = np.searchsorted( self.pltIdI, mousePointI.x(), side="left")
             if index > 0 and index < len(self.pltIdI):
-                self.ui.labelId.setText(self.sciPrint( (10**self.pltIdI[index]), 'A'))
-                self.ui.labelVstar.setText(self.sciPrint((2.0/self.pltGmI[index]), 'V'))
-                self.ui.labelGmId.setText(self.sciPrint(self.pltGmI[index], 'S/A'))
-                self.ui.labelFt.setText(self.sciPrint(self.pltFtI[index], 'Hz'))
-                self.ui.labelVgs.setText(self.sciPrint(self.pltVgI[index], 'V'))
+                self.ui.labelId.setText(        self.sciPrint( (10**self.pltIdI[index]), 'A'))
+                self.ui.labelVstar.setText(     self.sciPrint((2.0/self.pltGmI[index]), 'V'))
+                self.ui.labelGmId.setText(      self.sciPrint(self.pltGmI[index], 'S/A'))
+                self.ui.labelFt.setText(        self.sciPrint(self.pltFtI[index], 'Hz'))
+                self.ui.labelVgs.setText(       self.sciPrint(self.pltVgI[index], 'V'))
                 if(self.EN_VDSAT):
-                    self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatI[index], 'V'))
-                self.ui.labelGain.setText(self.sciPrint(self.pltAvI[index], 'V/V'))
-                self.ui.labelFOM.setText(self.sciPrint((self.pltFtI[index]*self.pltGmI[index]),'Hz/V'))
+                    self.ui.labelVdsat.setText( self.sciPrint(self.pltVdsatI[index], 'V'))
+                self.ui.labelGain.setText(      self.sciPrint(self.pltAvI[index], 'V/V'))
+                self.ui.labelFOM.setText(       self.sciPrint((self.pltFtI[index]*self.pltGmI[index]),'Hz/V'))
+                self.ui.labelIdWL.setText(      self.sciPrint(((10**self.pltIdI[index])/(self.W/self.L)), 'A'))
+                self.ui.labelVth.setText(       self.sciPrint((self.pltVtI[index]),'V'))
             else:
                 self.ui.labelId.setText('---')
                 self.ui.labelGmId.setText('---')
