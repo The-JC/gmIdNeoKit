@@ -56,6 +56,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.configPlot()
         # Initialize the checkbox
         self.configDefault()
+        # Set view configuration
+        self.configView()
+
+        self.EN_VDSAT = False
 
     def configBondKeys(self):
         ''' connect GUI elements to corresponding functions'''
@@ -67,6 +71,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.ui.checkBoxCornerFS.stateChanged.connect(self.PlotCornerFS)
         self.ui.checkBoxCornerSF.stateChanged.connect(self.PlotCornerSF)
         self.ui.checkBoxRef.stateChanged.connect(self.PlotRef)
+
         ## checkBox for Syn Mos Setting
         self.ui.checkBoxSynGmId.stateChanged.connect(self.SynGmId)
         self.ui.checkBoxSynVstar.stateChanged.connect(self.SynVstar)
@@ -97,6 +102,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.ui.pushButtonOptSize.clicked.connect(self.OptSizeMos)
         #comboBox.currentIndexChanged.connect()
         self.ui.comboBoxDesignCorner.currentIndexChanged.connect(self.changeCorner)
+
+        #comboBox.currentIndexChanged.connect()
+        self.ui.comboBoxPlotConf.currentIndexChanged.connect(self.changePlotType)
+
         #slider.valueChanged.connect()
         self.ui.horizontalSliderGateLExt.valueChanged.connect(self.changeExtFactor) 
 
@@ -129,13 +138,13 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.ui.topRPlotId.plotItem.setLabel('bottom', 'log(Id)')
         self.ui.topRPlotId.plotItem.setLabel('left','Ft*Gm/Id', units = 'Hz/V')
         self.ui.botLPlotId.plotItem.showGrid(True, True, 0.7)
-        self.ui.botLPlotId.plotItem.setTitle('Fig.2 Avo vs log(Id)')
+        self.ui.botLPlotId.plotItem.setTitle('Fig.3 Avo vs log(Id)')
         self.ui.botLPlotId.plotItem.setLabel('bottom', 'log(Id)')
         self.ui.botLPlotId.plotItem.setLabel('left','Avo', units = 'V/V')
         self.ui.botRPlotId.plotItem.showGrid(True, True, 0.7)
-        self.ui.botRPlotId.plotItem.setTitle('Fig.3 Ft*Gm/Id vs log(Id)')
+        self.ui.botRPlotId.plotItem.setTitle('Fig.4 Ft vs log(Id)')
         self.ui.botRPlotId.plotItem.setLabel('bottom', 'log(Id)')
-        self.ui.botRPlotId.plotItem.setLabel('left','FtGm/Id', units = 'Hz/V')
+        self.ui.botRPlotId.plotItem.setLabel('left','Ft', units = 'Hz')
         # vgs as x axis
         self.ui.topLPlotVgs.plotItem.showGrid(True, True, 0.7)
         self.ui.topLPlotVgs.plotItem.setTitle('Fig.1 Id vs Vgs')
@@ -162,7 +171,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.ui.topLPlotGmId.plotItem.setLogMode(False, True)
         self.ui.topRPlotGmId.plotItem.showGrid(True, True, 0.7)
         self.ui.topRPlotGmId.plotItem.setTitle('Fig.2 Ft*Gm/Id vs Gm/Id')
-        self.ui.topRPlotGmId.plotItem.setLabel('bottom', 'Gm/Id', units = 'V')
+        self.ui.topRPlotGmId.plotItem.setLabel('bottom', 'Gm/Id', units = 'S/A')
         self.ui.topRPlotGmId.plotItem.setLabel('left','Ft*Gm/Id', units = 'Hz/V')
         self.ui.botLPlotGmId.plotItem.showGrid(True, True, 0.7)
         self.ui.botLPlotGmId.plotItem.setLabel('bottom', 'Gm/Id', units = 'S/A')
@@ -331,6 +340,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.mosCorner = [None, None, None, None, None]
         self.mosDat = None
         self.mosVar = None
+        self.matLoaded = False
         # Data
         self.listVGS = []
         self.listL = []
@@ -500,6 +510,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.ui.checkBoxOptGm.setCheckState(2)
         self.ui.checkBoxSynVstar.setCheckState(2)
         self.ui.checkBoxSynId.setCheckState(2)
+
+    def configView(self):
+        '''Set some view settings'''
+        self.viewPlotConf = 0
 
     # checkBox Functions
     def SynGmId(self, state):
@@ -674,7 +688,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
     def GateLSet(self):
         self.gateLItem = self.ui.listWidgetL.currentItem()
         if self.gateLItem == None:
-            self.ui.labelLog.setText('No Gate Length Set')
+            self.ui.labelLog.setText('Max Gate Length Set')
         else:
             self.L = float(self.gateLItem.text())
             self.ui.labelGateL.setText(self.gateLItem.text())
@@ -808,7 +822,8 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
                     self.optPltL.append(1000*optL)
                     self.optPltVgs.append(self.optVGS)
                     self.optPltVth.append(lp.lookupfz(self.mosDat, self.mosModel, 'VT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
-                    self.optPltVdsat.append(lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
+                    if(self.EN_VDSAT):
+                        self.optPltVdsat.append(lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     self.optPltVstar.append(2.0/lp.lookupfz(self.mosDat, self.mosModel, 'GMOVERID', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     self.optPltFt.append(lp.lookupfz(self.mosDat, self.mosModel, 'FUG', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     #self.optPltAvo.append(lp.lookupfz(self.mosDat, self.mosModel, 'SELF_GAIN', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
@@ -822,7 +837,8 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
                     self.optPltL.append(1000*optL)
                     self.optPltVgs.append(self.optVGS)
                     self.optPltVth.append(lp.lookupfz(self.mosDat, self.mosModel, 'VT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
-                    self.optPltVdsat.append(lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
+                    if(self.EN_VDSAT):
+                        self.optPltVdsat.append(lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     self.optPltVstar.append(2.0/lp.lookupfz(self.mosDat, self.mosModel, 'GMOVERID', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     self.optPltFt.append(lp.lookupfz(self.mosDat, self.mosModel, 'FUG', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     #self.optPltAvo.append(lp.lookupfz(self.mosDat, self.mosModel, 'SELF_GAIN', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
@@ -836,7 +852,8 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
                     self.optPltL.append(1000*optL)
                     self.optPltVgs.append(self.optVGS)
                     self.optPltVth.append(lp.lookupfz(self.mosDat, self.mosModel, 'VT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
-                    self.optPltVdsat.append(lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
+                    if(self.EN_VDSAT):
+                        self.optPltVdsat.append(lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     self.optPltVstar.append(2.0/lp.lookupfz(self.mosDat, self.mosModel, 'GMOVERID', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     self.optPltFt.append(lp.lookupfz(self.mosDat, self.mosModel, 'FUG', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
                     #self.optPltAvo.append(lp.lookupfz(self.mosDat, self.mosModel, 'SELF_GAIN', VDS=self.VDS, VSB=self.VSB, L=optL, VGS=self.optVGS))
@@ -1085,10 +1102,29 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.halfVGS = 0.5 * self.maxVGS
         self.VDS = self.halfVGS
         self.ui.spinBoxBiasVds.setValue(int(1000.0*self.VDS))
+
+        self.ui.spinBoxMosFinger.setValue(int(self.mosDat['NFING'][0][0]))
         # TODO Set the VDS
-        self.W = self.mosDat['W'][0][0]*self.mosDat['NFING'][0][0]
-        print ('Mos Default Width : %2.2f' % self.W)
+        self.W = self.mosDat['W'][0][0]#*self.mosDat['NFING'][0][0]
+        print ('Mos Default Width : %2.2f\u00B5m' % self.W)
+
+        # Set default Lengths
+        self.L = max(self.listL)
+        self.ui.labelGateL.setText(str(self.L))
+        self.desLSet = 1
+        self.desLInd, = np.where(self.listL == self.L)
+        self.desLInd = self.desLInd[0]
+
+        self.Lref =  min(self.listL)
+        self.ui.labelGateLRef.setText(str(self.Lref))
+        self.refLSet = 1
+        self.refLInd, = np.where(self.listL == self.Lref)
+        self.refLInd = self.refLInd[0]
+
+
         self.checkMat()
+
+        self.matLoaded = True
 
     def checkMat(self):
         '''Check the variables stored in the mos dat'''
@@ -1122,30 +1158,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
                 self.mosCorner[i] = None
         # Update Plots
         ## Clear the plots and then add back the indicator
-        self.ui.topLPlotVgs.clear()
-        self.ui.topRPlotVgs.clear()
-        self.ui.botLPlotVgs.clear()
-        self.ui.botRPlotVgs.clear()
-        self.ui.topLPlotVstar.clear()
-        self.ui.topRPlotVstar.clear()
-        self.ui.botLPlotVstar.clear()
-        self.ui.botRPlotVstar.clear()
-        self.ui.topLPlotGmId.clear()
-        self.ui.topRPlotGmId.clear()
-        self.ui.botLPlotGmId.clear()
-        self.ui.botRPlotGmId.clear()
-        self.ui.topLPlotId.clear()
-        self.ui.topRPlotId.clear()
-        self.ui.botLPlotId.clear()
-        self.ui.botRPlotId.clear()
-        self.ui.topLPlotL.clear()
-        self.ui.topRPlotL.clear()
-        self.ui.botLPlotL.clear()
-        self.ui.botRPlotL.clear()
-        self.ui.topLPlotOpt.clear()
-        self.ui.topRPlotOpt.clear()
-        self.ui.botLPlotOpt.clear()
-        self.ui.botRPlotOpt.clear()
+        self.clearPlots()
         ## Add the VLine
         self.ui.topLPlotVgs.addItem(self.topLVLineVgs, ignoreBounds=True)
         self.ui.topRPlotVgs.addItem(self.topRVLineVgs, ignoreBounds=True)
@@ -1223,6 +1236,91 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             self.ui.checkBoxRef.setCheckState(2)
         else:
             self.ui.labelLog.setText("Corner Not Found")
+
+    def changePlotType(self):
+        self.viewPlotConf = self.ui.comboBoxPlotConf.currentIndex()
+
+        str = ''
+        unit = ''
+        if(self.viewPlotConf==0):
+            str = 'Ft*Gm/Id'
+            unit = 'Hz/V'
+        if(self.viewPlotConf==1):
+            str = 'Gm/Id'
+            unit = 'S/A'
+        
+
+
+        # vstar as x axis
+        self.ui.topRPlotVstar.plotItem.setTitle("Fig.2 %s vs Vstar" % (str))
+        self.ui.topRPlotVstar.plotItem.setLabel('left',str, units = unit)
+
+        # id as x axis
+        self.ui.topRPlotId.plotItem.setTitle('Fig.2 %s vs log(Id)' % (str))
+        self.ui.topRPlotId.plotItem.setLabel('left',str, units = unit)
+
+        # vgs as x axis
+        self.ui.topRPlotVgs.plotItem.setTitle('Fig.2 %s vs Vgs' % (str))
+        self.ui.topRPlotVgs.plotItem.setLabel('left',str, units = unit)
+
+        # gmId as x axis
+        if(self.viewPlotConf == 0):
+            self.ui.topRPlotGmId.plotItem.setTitle('Fig.2 %s vs Gm/Id' % (str))
+            self.ui.topRPlotGmId.plotItem.setLabel('left',str, units = unit)
+        elif(self.viewPlotConf == 1):
+            self.ui.topRPlotGmId.plotItem.setTitle('Fig.2 Id/(W/L) vs Gm/Id')
+            self.ui.topRPlotGmId.plotItem.setLabel('left', 'Id/(W/L)', units = 'A')
+
+        self.clearPlots()
+        self.genCurve()
+        self.pltCurveUpdate()
+
+    def clearPlots(self):
+        self.ui.topLPlotVgs.clear()
+        self.ui.topRPlotVgs.clear()
+        self.ui.botLPlotVgs.clear()
+        self.ui.botRPlotVgs.clear()
+        self.ui.topLPlotVstar.clear()
+        self.ui.topRPlotVstar.clear()
+        self.ui.botLPlotVstar.clear()
+        self.ui.botRPlotVstar.clear()
+        self.ui.topLPlotGmId.clear()
+        self.ui.topRPlotGmId.clear()
+        self.ui.botLPlotGmId.clear()
+        self.ui.botRPlotGmId.clear()
+        self.ui.topLPlotId.clear()
+        self.ui.topRPlotId.clear()
+        self.ui.botLPlotId.clear()
+        self.ui.botRPlotId.clear()
+        self.ui.topLPlotL.clear()
+        self.ui.topRPlotL.clear()
+        self.ui.botLPlotL.clear()
+        self.ui.botRPlotL.clear()
+        self.ui.topLPlotOpt.clear()
+        self.ui.topRPlotOpt.clear()
+        self.ui.botLPlotOpt.clear()
+        self.ui.botRPlotOpt.clear()
+        ## Add the VLine
+        self.ui.topLPlotVgs.addItem(self.topLVLineVgs, ignoreBounds=True)
+        self.ui.topRPlotVgs.addItem(self.topRVLineVgs, ignoreBounds=True)
+        self.ui.botLPlotVgs.addItem(self.botLVLineVgs, ignoreBounds=True)
+        self.ui.botRPlotVgs.addItem(self.botRVLineVgs, ignoreBounds=True)
+        self.ui.topLPlotVstar.addItem(self.topLVLineVstar, ignoreBounds=True)
+        self.ui.topRPlotVstar.addItem(self.topRVLineVstar, ignoreBounds=True)
+        self.ui.botLPlotVstar.addItem(self.botLVLineVstar, ignoreBounds=True)
+        self.ui.botRPlotVstar.addItem(self.botRVLineVstar, ignoreBounds=True)
+        self.ui.topLPlotGmId.addItem(self.topLVLineGmId, ignoreBounds=True)
+        self.ui.topRPlotGmId.addItem(self.topRVLineGmId, ignoreBounds=True)
+        self.ui.botLPlotGmId.addItem(self.botLVLineGmId, ignoreBounds=True)
+        self.ui.botRPlotGmId.addItem(self.botRVLineGmId, ignoreBounds=True)
+        self.ui.topLPlotId.addItem(self.topLVLineId, ignoreBounds=True)
+        self.ui.topRPlotId.addItem(self.topRVLineId, ignoreBounds=True)
+        self.ui.botLPlotId.addItem(self.botLVLineId, ignoreBounds=True)
+        self.ui.botRPlotId.addItem(self.botRVLineId, ignoreBounds=True)
+        self.ui.topLPlotL.addItem(self.topLVLineL, ignoreBounds=True)
+        self.ui.topRPlotL.addItem(self.topRVLineL, ignoreBounds=True)
+        self.ui.botLPlotL.addItem(self.botLVLineL, ignoreBounds=True)
+        self.ui.botRPlotL.addItem(self.botRVLineL, ignoreBounds=True)
 
     def genCurve(self):
         '''Generate all the curve'''
@@ -1322,15 +1420,41 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.listAv = self.lookUpAv(self.mosDat, self.mosModel, self.VDS, self.VSB, self.L, self.listVGS)
         self.listFt = lp.lookupfz(self.mosDat, self.mosModel, 'FUG', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         self.listGmId = lp.lookupfz(self.mosDat, self.mosModel, 'GMOVERID', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
-        self.listVdsat = lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
+        if(self.EN_VDSAT):
+            self.listVdsat = lp.lookupfz(self.mosDat, self.mosModel, 'VDSAT', VDS=self.VDS, VSB=self.VSB, L=self.L, VGS=self.listVGS)
         # Fig Line Extract
+
+        # Vgs Figure
+        self.pltCurveIdDDes = pg.PlotDataItem( self.listVGS, self.listId, pen = self.pen, clear=True)
+        self.pltCurveFtDDes = pg.PlotDataItem( self.listVGS, self.listFt, pen = self.pen, clear=True)
+        self.pltCurveAvDDes = pg.PlotDataItem( self.listVGS, self.listAv, pen = self.pen, clear=True)
+        if(self.viewPlotConf == 0):
+            self.pltCurveFomDDes= pg.PlotDataItem( self.listVGS, self.listFt * self.listGmId, pen = self.pen, clear=True)
+        elif(self.viewPlotConf == 1):
+            self.pltCurveFomDDes= pg.PlotDataItem( self.listVGS, self.listGmId, pen = self.pen, clear=True)
+        
+        self.ui.topLPlotVgs.addItem(self.pltCurveIdDDes)
+        self.ui.topRPlotVgs.addItem(self.pltCurveFomDDes)
+        self.ui.botLPlotVgs.addItem(self.pltCurveAvDDes)
+        self.ui.botRPlotVgs.addItem(self.pltCurveFtDDes)
+
+        ## Limit input data due to invaration in Gm/Id
+        max_index  = np.argmax(self.listGmId)
+        self.listId = self.listId[max_index:]
+        self.listGmId = self.listGmId[max_index:]
+        self.listFt = self.listFt[max_index:]
+        self.listAv = self.listAv[max_index:]
+        self.listVGS = self.listVGS[max_index:]
+        self.listVdsat = self.listVdsat[max_index:]
+
         ## Vstar Line
         self.listVstar = 2*np.reciprocal(self.listGmId)
         self.csIdV = CubicSpline( self.listVstar, self.listId)
         self.csFtV = CubicSpline( self.listVstar, self.listFt)
         self.csAvV = CubicSpline( self.listVstar, self.listAv)
         self.csVgV = CubicSpline( self.listVstar, self.listVGS)
-        self.csVdsatV = CubicSpline(self.listVstar, self.listVdsat)
+        if(self.EN_VDSAT):
+            self.csVdsatV = CubicSpline(self.listVstar, self.listVdsat)
         ## GmId Line
         self.listGmIdG = np.flip(self.listGmId, 0)
         self.listIdG = np.flip(self.listId, 0)
@@ -1342,23 +1466,17 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.csFtG = CubicSpline( self.listGmIdG, self.listFtG)
         self.csAvG = CubicSpline( self.listGmIdG, self.listAvG)
         self.csVgG = CubicSpline( self.listGmIdG, self.listVgG)
-        self.csVdsatG = CubicSpline( self.listGmIdG, self.listVdsatG)
+        if(self.EN_VDSAT):
+            self.csVdsatG = CubicSpline( self.listGmIdG, self.listVdsatG)
         ## Id Line
         self.listIdI = np.log10(self.listId)
         self.csGmI = CubicSpline( self.listIdI, self.listGmId)
         self.csFtI = CubicSpline( self.listIdI, self.listFt)
         self.csAvI = CubicSpline( self.listIdI, self.listAv)
         self.csVgI = CubicSpline( self.listIdI, self.listVGS)
-        self.csVdsatI = CubicSpline( self.listIdI, self.listVdsat)
-        # Vgs Figure
-        self.pltCurveIdDDes = pg.PlotDataItem( self.listVGS, self.listId, pen = self.pen, clear=True)
-        self.pltCurveFtDDes = pg.PlotDataItem( self.listVGS, self.listFt, pen = self.pen, clear=True)
-        self.pltCurveAvDDes = pg.PlotDataItem( self.listVGS, self.listAv, pen = self.pen, clear=True)
-        self.pltCurveFomDDes= pg.PlotDataItem( self.listVGS, self.listFt * self.listGmId, pen = self.pen, clear=True)
-        self.ui.topLPlotVgs.addItem(self.pltCurveIdDDes)
-        self.ui.topRPlotVgs.addItem(self.pltCurveFomDDes)
-        self.ui.botLPlotVgs.addItem(self.pltCurveAvDDes)
-        self.ui.botRPlotVgs.addItem(self.pltCurveFtDDes)
+        if(self.EN_VDSAT):
+            self.csVdsatI = CubicSpline( self.listIdI, self.listVdsat)
+    
         # Vstar Figure
         #self.pltVstar = np.arange( self.listVstar.min(), self.listVstar.max(), 0.001)
         self.pltVstar = np.arange( self.minVstar, self.maxVstar, 0.0005)
@@ -1366,15 +1484,20 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.pltFtV = self.csFtV(self.pltVstar)
         self.pltAvV = self.csAvV(self.pltVstar)
         self.pltVgV = self.csVgV(self.pltVstar)
-        self.pltVdsatV = self.csVdsatV(self.pltVstar)
+        if(self.EN_VDSAT):
+            self.pltVdsatV = self.csVdsatV(self.pltVstar)
         self.pltCurveIdVDes = pg.PlotDataItem( self.pltVstar, self.pltIdV, pen = self.pen, clear=True)
         self.pltCurveFtVDes = pg.PlotDataItem( self.pltVstar, self.pltFtV, pen = self.pen, clear=True)
         self.pltCurveAvVDes = pg.PlotDataItem( self.pltVstar, self.pltAvV, pen = self.pen, clear=True)
-        self.pltCurveFomVDes= pg.PlotDataItem( self.pltVstar, 2.0*self.pltFtV/self.pltVstar, pen = self.pen, clear=True)
+        if(self.viewPlotConf == 0):
+            self.pltCurveFomVDes= pg.PlotDataItem( self.pltVstar, 2.0*self.pltFtV/self.pltVstar, pen = self.pen, clear=True)
+        elif(self.viewPlotConf == 1):
+            self.pltCurveFomVDes= pg.PlotDataItem( self.pltVstar, 2.0/self.pltVstar, pen = self.pen, clear=True)
         self.ui.topLPlotVstar.addItem(self.pltCurveIdVDes)
         self.ui.topRPlotVstar.addItem(self.pltCurveFomVDes)
         self.ui.botLPlotVstar.addItem(self.pltCurveAvVDes)
         self.ui.botRPlotVstar.addItem(self.pltCurveFtVDes)
+
         # GmId Figure
         #self.pltGmId = np.arange( self.listGmId.min(), self.listGmId.max(), 0.01)
         self.pltGmId = np.arange( self.minGmId, self.maxGmId, 0.01)
@@ -1382,25 +1505,36 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.pltFtG = self.csFtG(self.pltGmId)
         self.pltAvG = self.csAvG(self.pltGmId)
         self.pltVgG = self.csVgG(self.pltGmId)
-        self.pltVdsatG = self.csVdsatG(self.pltGmId)
+        if(self.EN_VDSAT):
+            self.pltVdsatG = self.csVdsatG(self.pltGmId)
         self.pltCurveIdGDes = pg.PlotDataItem( self.pltGmId, self.pltIdG, pen = self.pen, clear=True)
         self.pltCurveFtGDes = pg.PlotDataItem( self.pltGmId, self.pltFtG, pen = self.pen, clear=True)
         self.pltCurveAvGDes = pg.PlotDataItem( self.pltGmId, self.pltAvG, pen = self.pen, clear=True)
-        self.pltCurveFomGDes= pg.PlotDataItem( self.pltGmId, self.pltGmId * self.pltFtG, pen = self.pen, clear=True)
+        if(self.viewPlotConf == 0):
+            self.pltCurveFomGDes= pg.PlotDataItem( self.pltGmId, self.pltGmId * self.pltFtG, pen = self.pen, clear=True)
+        elif(self.viewPlotConf == 1):
+            self.pltCurveFomGDes= pg.PlotDataItem( self.pltGmId, self.pltGmId, pen = self.pen, clear=True)
+            # Plot Id/(W/L) curve
+            self.pltCurveFomGDes= pg.PlotDataItem( self.pltGmId, self.pltIdG / (self.W/self.L), pen = self.pen, clear=True)
         self.ui.topLPlotGmId.addItem(self.pltCurveIdGDes)
         self.ui.topRPlotGmId.addItem(self.pltCurveFomGDes)
         self.ui.botLPlotGmId.addItem(self.pltCurveAvGDes)
         self.ui.botRPlotGmId.addItem(self.pltCurveFtGDes)
+
         # Id Figure
         self.pltIdI = np.arange( self.listIdI.min(), self.listIdI.max(), 0.05)
         self.pltGmI = self.csGmI( self.pltIdI)
         self.pltFtI = self.csFtI( self.pltIdI)
         self.pltAvI = self.csAvI( self.pltIdI)
         self.pltVgI = self.csVgI( self.pltIdI)
-        self.pltVdsatI = self.csVdsatI( self.pltIdI)
+        if(self.EN_VDSAT):
+            self.pltVdsatI = self.csVdsatI( self.pltIdI)
         self.pltCurveGmIDes = pg.PlotDataItem( self.pltIdI, self.pltGmI, pen = self.pen, clear=True)
         self.pltCurveFtIDes = pg.PlotDataItem( self.pltIdI, self.pltFtI, pen = self.pen, clear=True)
-        self.pltCurveFomIDes = pg.PlotDataItem( self.pltIdI, self.pltFtI*self.pltGmI, pen = self.pen, clear=True)
+        if(self.viewPlotConf == 0):
+            self.pltCurveFomIDes = pg.PlotDataItem( self.pltIdI, self.pltFtI*self.pltGmI, pen = self.pen, clear=True)
+        elif(self.viewPlotConf == 1):
+            self.pltCurveFomIDes = pg.PlotDataItem( self.pltIdI, self.pltGmI, pen = self.pen, clear=True)
         self.pltCurveAvIDes = pg.PlotDataItem( self.pltIdI, self.pltAvI, pen = self.pen, clear=True)
         self.ui.topLPlotId.addItem(self.pltCurveGmIDes)
         self.ui.topRPlotId.addItem(self.pltCurveFomIDes)
@@ -1470,8 +1604,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveIdDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listId, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listFt, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveAvDDes[cornerIndex] = pg.PlotDataItem( self.listVGS, listAv, pen = self.cornerPen[cornerIndex], clear=True)
-        # self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
-        self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
+        if(self.viewPlotConf == 0):
+            self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
+        elif(self.viewPlotConf == 1):
+            self.corCurveFomDDes[cornerIndex]= pg.PlotDataItem( self.listVGS, listGmOverId, pen = self.cornerPen[cornerIndex], clear=True)
         
         ## Limit input data due to invaration in Gm/Id
         max_index  = np.argmax(listGmOverId)
@@ -1493,7 +1629,11 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveIdVDes[cornerIndex] = pg.PlotDataItem( pltVstar, pltIdV, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtVDes[cornerIndex] = pg.PlotDataItem( pltVstar, pltFtV, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveAvVDes[cornerIndex] = pg.PlotDataItem( pltVstar, pltAvV, pen = self.cornerPen[cornerIndex], clear=True)
-        self.corCurveFomVDes[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 * pltFtV / pltVstar, pen = self.cornerPen[cornerIndex], clear=True)
+        if(self.viewPlotConf == 0):
+            self.corCurveFomVDes[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 * pltFtV / pltVstar, pen = self.cornerPen[cornerIndex], clear=True)
+        elif(self.viewPlotConf == 1):
+            self.corCurveFomVDes[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 / pltVstar, pen = self.cornerPen[cornerIndex], clear=True)
+
         ## GmOverId Curve
         listGmId = np.flip(listGmOverId, 0)
         listIdG = np.flip(listId, 0)
@@ -1509,7 +1649,13 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveIdGDes[cornerIndex] = pg.PlotDataItem( pltGmId, pltIdG, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtGDes[cornerIndex] = pg.PlotDataItem( pltGmId, pltFtG, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveAvGDes[cornerIndex] = pg.PlotDataItem( pltGmId, pltAvG, pen = self.cornerPen[cornerIndex], clear=True)
-        self.corCurveFomGDes[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId * pltFtG, pen = self.cornerPen[cornerIndex], clear=True)
+        if(self.viewPlotConf == 0):
+            self.corCurveFomGDes[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId * pltFtG, pen = self.cornerPen[cornerIndex], clear=True)
+        elif(self.viewPlotConf == 1):
+            # self.corCurveFomGDes[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId, pen = self.cornerPen[cornerIndex], clear=True)
+            # Plot Id/(W/L) curve
+            self.corCurveFomGDes[cornerIndex]= pg.PlotDataItem( pltGmId, pltIdG / (self.W/self.L), pen = self.cornerPen[cornerIndex], clear=True)
+
         ## Id Curve
         listIdI = np.log10(listId)
         csGmI = CubicSpline( listIdI, listGmOverId)
@@ -1522,7 +1668,11 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveGmIDes[cornerIndex] = pg.PlotDataItem( pltIdI, pltGmI, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveFtIDes[cornerIndex] = pg.PlotDataItem( pltIdI, pltFtI, pen = self.cornerPen[cornerIndex], clear=True)
         self.corCurveAvIDes[cornerIndex] = pg.PlotDataItem( pltIdI, pltAvI, pen = self.cornerPen[cornerIndex], clear=True)
-        self.corCurveFomIDes[cornerIndex] = pg.PlotDataItem( pltIdI, pltFtI*pltGmI, pen = self.cornerPen[cornerIndex], clear=True)
+        if(self.viewPlotConf == 0):
+            self.corCurveFomIDes[cornerIndex] = pg.PlotDataItem( pltIdI, pltFtI*pltGmI, pen = self.cornerPen[cornerIndex], clear=True)
+        elif(self.viewPlotConf == 1):
+            self.corCurveFomIDes[cornerIndex] = pg.PlotDataItem( pltIdI, pltGmI, pen = self.cornerPen[cornerIndex], clear=True)
+
         # All Curve for Ref-L
         listId = lp.lookupfz(self.mosCorner[cornerIndex], self.mosModel, 'ID', VDS=self.VDS, VSB=self.VSB, L=self.Lref, VGS=self.listVGS)
         listGmOverId = lp.lookupfz(self.mosCorner[cornerIndex], self.mosModel, 'GMOVERID', VDS=self.VDS, VSB=self.VSB, L=self.Lref, VGS=self.listVGS)
@@ -1533,8 +1683,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveIdDRef[cornerIndex] = pg.PlotDataItem( self.listVGS, listId, pen = self.refPen, clear=True)
         self.corCurveFtDRef[cornerIndex] = pg.PlotDataItem( self.listVGS, listFt, pen = self.refPen, clear=True)
         self.corCurveAvDRef[cornerIndex] = pg.PlotDataItem( self.listVGS, listAv, pen = self.refPen, clear=True)
-        # self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.refPen, clear=True)
-        self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listGmOverId, pen = self.refPen, clear=True)
+        if(self.viewPlotConf == 0):
+            self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listFt * listGmOverId, pen = self.refPen, clear=True)
+        elif(self.viewPlotConf == 1):
+            self.corCurveFomDRef[cornerIndex]= pg.PlotDataItem( self.listVGS, listGmOverId, pen = self.refPen, clear=True)
         
         ## Limit input data due to invaration in Gm/Id
         max_index  = np.argmax(listGmOverId)
@@ -1555,7 +1707,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             self.corCurveIdVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltIdV, pen = self.refPen, clear=True)
             self.corCurveFtVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltFtV, pen = self.refPen, clear=True)
             self.corCurveAvVRef[cornerIndex] = pg.PlotDataItem( pltVstar, pltAvV, pen = self.refPen, clear=True)
-            self.corCurveFomVRef[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 * pltFtV / pltVstar, pen = self.refPen, clear=True)
+            if(self.viewPlotConf == 0):
+                self.corCurveFomVRef[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0 * pltFtV / pltVstar, pen = self.refPen, clear=True)
+            elif(self.viewPlotConf == 1):
+                self.corCurveFomVRef[cornerIndex]= pg.PlotDataItem( pltVstar, 2.0  / pltVstar, pen = self.refPen, clear=True)
         
         ## GmOverID Curve
             listGmId = np.flip(listGmOverId, 0)
@@ -1571,7 +1726,12 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             self.corCurveIdGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltIdG, pen = self.refPen, clear=True)
             self.corCurveFtGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltFtG, pen = self.refPen, clear=True)
             self.corCurveAvGRef[cornerIndex] = pg.PlotDataItem( pltGmId, pltAvG, pen = self.refPen, clear=True)
-            self.corCurveFomGRef[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId * pltFtG, pen = self.refPen, clear=True)
+            if(self.viewPlotConf == 0):
+                self.corCurveFomGRef[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId * pltFtG, pen = self.refPen, clear=True)
+            elif(self.viewPlotConf == 1):
+                # self.corCurveFomGRef[cornerIndex]= pg.PlotDataItem( pltGmId, pltGmId , pen = self.refPen, clear=True)
+                # Plot Id/(W/L) curve
+                self.corCurveFomGRef[cornerIndex]= pg.PlotDataItem( pltGmId, pltIdG / (self.W/self.Lref), pen = self.refPen, clear=True)
         ## Id Curve
         listIdI = np.log10(listId)
         csGmI = CubicSpline( listIdI, listGmOverId)
@@ -1584,7 +1744,10 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.corCurveGmIRef[cornerIndex] = pg.PlotDataItem( pltIdI, pltGmI, pen = self.refPen, clear=True)
         self.corCurveFtIRef[cornerIndex] = pg.PlotDataItem( pltIdI, pltFtI, pen = self.refPen, clear=True)
         self.corCurveAvIRef[cornerIndex] = pg.PlotDataItem( pltIdI, pltAvI, pen = self.refPen, clear=True)
-        self.corCurveFomIRef[cornerIndex]= pg.PlotDataItem(pltIdI, pltFtI*pltGmI, pen = self.refPen, clear=True)
+        if(self.viewPlotConf == 0):
+            self.corCurveFomIRef[cornerIndex]= pg.PlotDataItem(pltIdI, pltFtI*pltGmI, pen = self.refPen, clear=True)
+        elif(self.viewPlotConf == 1):
+            self.corCurveFomIRef[cornerIndex]= pg.PlotDataItem(pltIdI, pltGmI, pen = self.refPen, clear=True)
 
     def lookUpAv(self, mosDat, mosModel, chkVds, chkVsb, chkL, chkVgs):
         '''Return Self-Gain Based on data state'''
@@ -1677,12 +1840,13 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
                 self.ui.labelId.setText(self.sciPrint(self.listId[index], 'A'))
                 self.ui.labelFt.setText(self.sciPrint(self.listFt[index], 'Hz'))
                 self.ui.labelVgs.setText(self.sciPrint(self.listVGS[index], 'V'))
-                self.ui.labelVdsat.setText(self.sciPrint(self.listVdsat[index], 'V'))
+                if(self.EN_VDSAT):
+                    self.ui.labelVdsat.setText(self.sciPrint(self.listVdsat[index], 'V'))
                 self.ui.labelGain.setText(self.sciPrint(self.listAv[index], 'V/V'))
                 self.ui.labelFOM.setText(self.sciPrint((self.listFt[index]*self.listGmId[index]),'Hz/V'))
                 # TODO Fix the Error
                 self.ui.labelVstar.setText(self.sciPrint(2.0/self.listGmId[index], 'V'))
-                self.ui.labelGmId.setText(self.sciPrint(self.listGmId[index], '1/V'))
+                self.ui.labelGmId.setText(self.sciPrint(self.listGmId[index], 'S/A'))
                 #self.ui.labelGmId.setText('---')
                 #self.ui.labelVstar.setText('---')
             else:
@@ -1707,10 +1871,11 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             if index > 0 and index < len(self.pltVstar):
                 self.ui.labelId.setText(self.sciPrint(self.pltIdV[index], 'A'))
                 self.ui.labelVstar.setText(self.sciPrint(self.pltVstar[index], 'V'))
-                self.ui.labelGmId.setText(self.sciPrint((2.0/self.pltVstar[index]), '1/V'))
+                self.ui.labelGmId.setText(self.sciPrint((2.0/self.pltVstar[index]), 'S/A'))
                 self.ui.labelFt.setText(self.sciPrint(self.pltFtV[index], 'Hz'))
                 self.ui.labelVgs.setText(self.sciPrint(self.pltVgV[index], 'V'))
-                self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatV[index], 'V'))
+                if(self.EN_VDSAT):
+                    self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatV[index], 'V'))
                 self.ui.labelGain.setText(self.sciPrint(self.pltAvV[index], 'V/V'))
                 self.ui.labelFOM.setText(self.sciPrint((2.0*self.pltFtV[index]/self.pltVstar[index]),'Hz/V'))
             else:
@@ -1735,10 +1900,11 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             if index > 0 and index < len(self.pltGmId):
                 self.ui.labelId.setText(self.sciPrint(self.pltIdG[index], 'A'))
                 self.ui.labelVstar.setText(self.sciPrint((2.0/self.pltGmId[index]), 'V'))
-                self.ui.labelGmId.setText(self.sciPrint(self.pltGmId[index], '1/V'))
+                self.ui.labelGmId.setText(self.sciPrint(self.pltGmId[index], 'S/A'))
                 self.ui.labelFt.setText(self.sciPrint(self.pltFtG[index], 'Hz'))
                 self.ui.labelVgs.setText(self.sciPrint(self.pltVgG[index], 'V'))
-                self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatG[index], 'V'))
+                if(self.EN_VDSAT):
+                    self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatG[index], 'V'))
                 self.ui.labelGain.setText(self.sciPrint(self.pltAvG[index], 'V/V'))
                 self.ui.labelFOM.setText(self.sciPrint((self.pltFtG[index]*self.pltGmId[index]),'Hz/V'))
             else:
@@ -1763,10 +1929,11 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
             if index > 0 and index < len(self.pltIdI):
                 self.ui.labelId.setText(self.sciPrint( (10**self.pltIdI[index]), 'A'))
                 self.ui.labelVstar.setText(self.sciPrint((2.0/self.pltGmI[index]), 'V'))
-                self.ui.labelGmId.setText(self.sciPrint(self.pltGmI[index], '1/V'))
+                self.ui.labelGmId.setText(self.sciPrint(self.pltGmI[index], 'S/A'))
                 self.ui.labelFt.setText(self.sciPrint(self.pltFtI[index], 'Hz'))
                 self.ui.labelVgs.setText(self.sciPrint(self.pltVgI[index], 'V'))
-                self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatI[index], 'V'))
+                if(self.EN_VDSAT):
+                    self.ui.labelVdsat.setText(self.sciPrint(self.pltVdsatI[index], 'V'))
                 self.ui.labelGain.setText(self.sciPrint(self.pltAvI[index], 'V/V'))
                 self.ui.labelFOM.setText(self.sciPrint((self.pltFtI[index]*self.pltGmI[index]),'Hz/V'))
             else:
@@ -1790,16 +1957,19 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
                 self.botLVLineL.setPos(self.optPltL[index])
                 self.botRVLineL.setPos(self.optPltL[index])
                 self.ui.labelId.setText('---')
-                self.ui.labelGmId.setText(self.sciPrint((2.0/self.optPltVstar[index]), '1/V'))
+                self.ui.labelGmId.setText(self.sciPrint((2.0/self.optPltVstar[index]), 'S/A'))
                 self.ui.labelFt.setText(self.sciPrint(self.optPltFt[index], 'Hz'))
                 self.ui.labelVgs.setText(self.sciPrint(self.optPltVgs[index], 'V'))
-                self.ui.labelVdsat.setText(self.sciPrint(self.optPltVdsat[index], 'V'))
+                if(self.EN_VDSAT):
+                    self.ui.labelVdsat.setText(self.sciPrint(self.optPltVdsat[index], 'V'))
                 self.ui.labelVstar.setText(self.sciPrint( self.optPltVstar[index], 'V'))
                 self.ui.labelFOM.setText('---')
                 self.ui.labelGain.setText(self.sciPrint(self.optPltAvo[index], 'V/V'))
 
     def sciPrint( self, rawNum, unit):
         '''Print the rawNum with autoscale'''
+        if(rawNum == 0):
+            return str(0) + unit
         shiftNum = (decimal.Decimal(str(rawNum)) * decimal.Decimal('1E33')).normalize()
         preNum, scaleNum= shiftNum.to_eng_string().split('E')
         quanNum = decimal.Decimal(preNum).quantize(decimal.Decimal('.001'))
