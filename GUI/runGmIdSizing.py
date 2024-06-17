@@ -15,6 +15,7 @@ from gmIdSizingGuiVp1 import Ui_GmIdMainWindow
 
 # import System
 import sys
+import ctypes
 # import for ploting
 import numpy as np
 # import pyqtgraph for plotting
@@ -46,6 +47,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         super( gmIdGUIWindow, self).__init__()
         self.ui = Ui_GmIdMainWindow()
         self.ui.setupUi( self)
+        self.setWindowIcon(QtGui.QIcon('GUI/logo.jpg'))
         # Initialize the Data
         self.configDataLib()
         # Threading
@@ -298,7 +300,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
         self.synGm = 5.0
         self.synId = 1.0
         self.synState = 1
-        self.synMulti = 10
+        self.synMulti = 1
         self.synFin = 2
         ## synOppt : 0 for GmOverId, 1 for Vstar
         self.synOppt = 1
@@ -2009,5 +2011,7 @@ class gmIdGUIWindow(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     form = gmIdGUIWindow()
+    myappid = u'cchellner.gmidneokit.0.4' # arbitrary string
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     form.show()
     app.exec_()

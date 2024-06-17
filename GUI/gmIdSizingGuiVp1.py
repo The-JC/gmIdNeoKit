@@ -792,7 +792,7 @@ class Ui_GmIdMainWindow(object):
         self.horizontalLayout_35.addWidget(self.titleBiasVbs)
         self.spinBoxBiasVbs = QtWidgets.QSpinBox(self.groupBoxMosCheck)
         self.spinBoxBiasVbs.setAlignment(QtCore.Qt.AlignCenter)
-        self.spinBoxBiasVbs.setMaximum(1800)
+        self.spinBoxBiasVbs.setMaximum(2000)
         self.spinBoxBiasVbs.setSingleStep(25)
         self.spinBoxBiasVbs.setObjectName("spinBoxBiasVbs")
         self.horizontalLayout_35.addWidget(self.spinBoxBiasVbs)
